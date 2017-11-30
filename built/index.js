@@ -72,6 +72,44 @@ router.get('/send', function (ctx, next) { return __awaiter(_this, void 0, void 
         }
     });
 }); });
+router.get('/publish', function (ctx, next) { return __awaiter(_this, void 0, void 0, function () {
+    var conn, ex, msg;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, amqp_promise];
+            case 1:
+                conn = _a.sent();
+                ex = 'log';
+                msg = 'test' + Date.now();
+                conn.createChannel(function (err, ch) {
+                    ch.assertExchange(ex, 'fanout', { durable: false });
+                    ch.publish(ex, '', new Buffer(msg));
+                });
+                ctx.body = msg;
+                return [2 /*return*/];
+        }
+    });
+}); });
+router.get('/topics', function (ctx, next) { return __awaiter(_this, void 0, void 0, function () {
+    var _a, key, msg, conn, ex;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
+            case 0:
+                _a = ctx.query, key = _a.key, msg = _a.msg;
+                return [4 /*yield*/, amqp_promise];
+            case 1:
+                conn = _b.sent();
+                ex = 'topic';
+                conn.createChannel(function (err, ch) {
+                    ch.assertExchange(ex, 'topic', { durable: false });
+                    ch.publish(ex, key, new Buffer(msg));
+                    console.log(msg);
+                });
+                ctx.body = msg;
+                return [2 /*return*/];
+        }
+    });
+}); });
 app.use(router.routes())
     .use(router.allowedMethods());
 app.listen(3000, function () {
