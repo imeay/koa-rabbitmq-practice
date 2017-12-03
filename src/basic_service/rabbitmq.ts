@@ -9,7 +9,7 @@ const amqp_promise:any = new Promise( (resolve, reject) => {
   });
 });
 
-export const create_channel = async () => {
+export const create_channel = async ():Promise<any> => {
   const connect = await amqp_promise;
   return new Promise((resolve, reject) => {
    connect.createChannel( (err, ch) => {
