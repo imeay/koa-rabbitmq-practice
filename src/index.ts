@@ -1,16 +1,7 @@
 import * as Koa from 'koa';
 import * as Router from 'koa-router';
-const amqp = require('amqplib/callback_api');
 
-const amqp_promise:any = new Promise( (resolve, reject) => {
-   amqp.connect('amqp://localhost', function(err, conn) {
-    if (err) {
-     reject(err);
-    } else {
-     resolve(conn);
-    }  
-  });
-});
+import * as RabbitMQ from './basic_service/rabbitmq';
 
 const app = new Koa();
 const router = new Router();
@@ -20,37 +11,31 @@ router.get('/', (ctx, next) => {
 });
 
 router.get('/send', async (ctx, next) => {
-  const conn = await amqp_promise;
-  ctx.body = 'send';
-
-  conn.createChannel((err, ch) => {
-      const queue = 'task_hello';
-      ch.assertQueue(queue, {durable: true});
-      ch.sendToQueue(queue, new Buffer('hello'), { persistent: true});
-      console.log('send hello');  
-    });
+  const msg = ctx.query.msg || '';
+  const ch = await RabbitMQ.create_channel();
+  const queue = 'task_hello';
+  ch.assertQueue(queue, {durable: true});
+  ch.sendToQueue(queue, new Buffer(msg), { persistent: true});
+  ctx.body = msg;  
 });
 
 router.get('/publish', async (ctx, next) => {
-  const conn = await amqp_promise;
+  const msg = ctx.query.msg || '';
+  const ch = await RabbitMQ.create_channel();
+  const queue = 'task_hello';
   const ex = 'log';
-  const msg = 'test' + Date.now();
-  conn.createChannel( (err, ch) => {
-    ch.assertExchange( ex, 'fanout', {durable: false});
-    ch.publish(ex, '', new Buffer(msg));
-  });
+  ch.assertExchange( ex, 'fanout', {durable: false});
+  ch.publish(ex, '', new Buffer(msg));
   ctx.body = msg; 
 });
 
 router.get('/topics', async (ctx, next) => {
   const { key, msg } = ctx.query;
-  const conn = await amqp_promise;
+  const ch = await RabbitMQ.create_channel();
+  const queue = 'task_hello';
   const ex = 'topic';
-  conn.createChannel((err,ch) => {
-    ch.assertExchange(ex, 'topic', {durable: false});
-    ch.publish(ex, key, new Buffer(msg));
-    console.log(msg);
-  });
+  ch.assertExchange(ex, 'topic', {durable: false});
+  ch.publish(ex, key, new Buffer(msg));
   ctx.body = msg;  
 });
 

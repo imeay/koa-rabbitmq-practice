@@ -38,73 +38,60 @@ var _this = this;
 Object.defineProperty(exports, "__esModule", { value: true });
 var Koa = require("koa");
 var Router = require("koa-router");
-var amqp = require('amqplib/callback_api');
-var amqp_promise = new Promise(function (resolve, reject) {
-    amqp.connect('amqp://localhost', function (err, conn) {
-        if (err) {
-            reject(err);
-        }
-        else {
-            resolve(conn);
-        }
-    });
-});
+var RabbitMQ = require("./basic_service/rabbitmq");
 var app = new Koa();
 var router = new Router();
 router.get('/', function (ctx, next) {
     ctx.body = { name: 'xiaochi' };
 });
 router.get('/send', function (ctx, next) { return __awaiter(_this, void 0, void 0, function () {
-    var conn;
+    var msg, ch, queue;
     return __generator(this, function (_a) {
         switch (_a.label) {
-            case 0: return [4 /*yield*/, amqp_promise];
+            case 0:
+                msg = ctx.query.msg || '';
+                return [4 /*yield*/, RabbitMQ.create_channel()];
             case 1:
-                conn = _a.sent();
-                ctx.body = 'send';
-                conn.createChannel(function (err, ch) {
-                    var queue = 'task_hello';
-                    ch.assertQueue(queue, { durable: true });
-                    ch.sendToQueue(queue, new Buffer('hello'), { persistent: true });
-                    console.log('send hello');
-                });
+                ch = _a.sent();
+                queue = 'task_hello';
+                ch.assertQueue(queue, { durable: true });
+                ch.sendToQueue(queue, new Buffer(msg), { persistent: true });
+                ctx.body = msg;
                 return [2 /*return*/];
         }
     });
 }); });
 router.get('/publish', function (ctx, next) { return __awaiter(_this, void 0, void 0, function () {
-    var conn, ex, msg;
+    var msg, ch, queue, ex;
     return __generator(this, function (_a) {
         switch (_a.label) {
-            case 0: return [4 /*yield*/, amqp_promise];
+            case 0:
+                msg = ctx.query.msg || '';
+                return [4 /*yield*/, RabbitMQ.create_channel()];
             case 1:
-                conn = _a.sent();
+                ch = _a.sent();
+                queue = 'task_hello';
                 ex = 'log';
-                msg = 'test' + Date.now();
-                conn.createChannel(function (err, ch) {
-                    ch.assertExchange(ex, 'fanout', { durable: false });
-                    ch.publish(ex, '', new Buffer(msg));
-                });
+                ch.assertExchange(ex, 'fanout', { durable: false });
+                ch.publish(ex, '', new Buffer(msg));
                 ctx.body = msg;
                 return [2 /*return*/];
         }
     });
 }); });
 router.get('/topics', function (ctx, next) { return __awaiter(_this, void 0, void 0, function () {
-    var _a, key, msg, conn, ex;
+    var _a, key, msg, ch, queue, ex;
     return __generator(this, function (_b) {
         switch (_b.label) {
             case 0:
                 _a = ctx.query, key = _a.key, msg = _a.msg;
-                return [4 /*yield*/, amqp_promise];
+                return [4 /*yield*/, RabbitMQ.create_channel()];
             case 1:
-                conn = _b.sent();
+                ch = _b.sent();
+                queue = 'task_hello';
                 ex = 'topic';
-                conn.createChannel(function (err, ch) {
-                    ch.assertExchange(ex, 'topic', { durable: false });
-                    ch.publish(ex, key, new Buffer(msg));
-                    console.log(msg);
-                });
+                ch.assertExchange(ex, 'topic', { durable: false });
+                ch.publish(ex, key, new Buffer(msg));
                 ctx.body = msg;
                 return [2 /*return*/];
         }
